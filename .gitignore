@@ -1,0 +1,4 @@
+# Local user configuration — may contain personal paths / device names.
+# Use config-example.ini as the committed template.
+config.ini
+tv-mode.log
