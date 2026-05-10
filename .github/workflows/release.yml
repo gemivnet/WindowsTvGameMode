@@ -34,9 +34,11 @@ jobs:
         shell: pwsh
         run: |
           $ahkVersion = "2.0.18"
-          $url = "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$ahkVersion/AutoHotkey_$ahkVersion.zip"
-          Invoke-WebRequest -Uri $url -OutFile ahk.zip
+          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$ahkVersion/AutoHotkey_$ahkVersion.zip" -OutFile ahk.zip
           Expand-Archive -Path ahk.zip -DestinationPath ahk -Force
+          $ahk2exeAsset = (Invoke-RestMethod "https://api.github.com/repos/AutoHotkey/Ahk2Exe/releases/latest").assets[0].browser_download_url
+          Invoke-WebRequest -Uri $ahk2exeAsset -OutFile ahk2exe.zip
+          Expand-Archive -Path ahk2exe.zip -DestinationPath ahk\Compiler -Force
 
       - name: Compile
         shell: pwsh
