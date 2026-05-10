@@ -51,11 +51,19 @@ jobs:
           & $compiler /in src\main.ahk /out dist\WindowsTvGameMode.exe /base $base @iconArg
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc /DAppVersion=${{ steps.ver.outputs.version }} /Odist installer\WindowsTvGameMode.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/WindowsTvGameMode.exe
-            config-example.ini
+          files: dist/WindowsTvGameModeSetup.exe
           generate_release_notes: true
           make_latest: 'true'

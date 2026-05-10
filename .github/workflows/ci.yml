@@ -38,7 +38,22 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path "dist\WindowsTvGameMode.exe")) { Write-Error "Build did not produce .exe"; exit 1 }
 
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            Write-Host "Inno Setup not preinstalled, fetching..."
+            choco install innosetup -y --no-progress
+          }
+          $version = (Get-Content VERSION -Raw).Trim()
+          & $iscc /DAppVersion=$version /Odist installer\WindowsTvGameMode.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path "dist\WindowsTvGameModeSetup.exe")) { Write-Error "Installer not produced"; exit 1 }
+
       - uses: actions/upload-artifact@v4
         with:
           name: WindowsTvGameMode-preview
-          path: dist\WindowsTvGameMode.exe
+          path: |
+            dist\WindowsTvGameMode.exe
+            dist\WindowsTvGameModeSetup.exe

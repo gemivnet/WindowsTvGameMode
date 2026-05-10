@@ -19,12 +19,19 @@ Distributed as a single self-contained `.exe` — no AutoHotkey install required
 
 ## Install
 
-1. Grab the latest `WindowsTvGameMode.exe` from the [Releases page](https://github.com/gemivnet/WindowsTvGameMode/releases).
-2. Drop it anywhere (e.g. `%LOCALAPPDATA%\WindowsTvGameMode\`) and double-click.
-3. SmartScreen will warn on first launch (unsigned) — click **More info → Run anyway**.
-4. On first run the app offers to open Settings so you can point at the external tools.
+1. Grab `WindowsTvGameModeSetup.exe` from the [Releases page](https://github.com/gemivnet/WindowsTvGameMode/releases).
+2. Double-click to run. The installer is per-user — no admin prompt.
+3. SmartScreen will warn (unsigned) — click **More info → Run anyway**.
+4. The setup wizard walks through:
+   - **External tools** — file pickers for `MonitorSwitcher.exe` and `SoundVolumeView.exe` (with download links)
+   - **Display profiles** — pickers for your `tv.xml` / `desktop.xml`
+   - **Audio devices** — substring of TV / desktop device names
+   - **Playnite** — auto-detected if installed at the default path
+   - **Behavior** — poll interval, hold duration
 
-A tray icon appears. Right-click it for Settings, autostart toggle, update check, and exit.
+Settings are written to `%APPDATA%\WindowsTvGameMode\config.ini`. Re-running the installer (or the auto-updater) preserves and updates them in place. The app installs to `%LOCALAPPDATA%\Programs\WindowsTvGameMode\` and registers in **Settings → Apps → Installed apps** for clean uninstall.
+
+A tray icon appears once running — right-click it for Settings, autostart toggle, update check, and exit. You can re-edit any of the wizard's values anytime from the in-app Settings dialog.
 
 ## External tools (you supply)
 
@@ -101,7 +108,7 @@ Logs go to `%APPDATA%\WindowsTvGameMode\tv-mode.log`.
 
 ## Auto-update
 
-On launch and via the tray, the app polls GitHub Releases. If a newer build is published it prompts with release notes; **Yes** downloads the new `.exe` and a small batch script swaps it in and relaunches.
+On launch and via the tray, the app polls GitHub Releases. If a newer build is published it prompts with release notes; **Yes** downloads the new installer and runs it silently — files are replaced, the uninstaller registration stays in sync, and the app relaunches automatically. Your config in `%APPDATA%` is preserved.
 
 ## Troubleshooting
 

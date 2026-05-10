@@ -37,7 +37,7 @@ UpdaterCheck() {
             return result
         }
         latest := (SubStr(tag, 1, 1) = "v") ? SubStr(tag, 2) : tag
-        assetUrl := FindAssetUrl(body, UPDATER_APP_NAME ".exe")
+        assetUrl := FindAssetUrl(body, UPDATER_APP_NAME "Setup.exe")
         result["version"] := latest
         result["notes"] := notes
         result["assetUrl"] := assetUrl
@@ -48,14 +48,20 @@ UpdaterCheck() {
     return result
 }
 
-; Download the new exe and spawn a swap script. Returns true if the swap was
-; initiated (caller should ExitApp).
+; Download the new installer and run it silently. Returns true if the install
+; was initiated (caller should ExitApp so the installer can replace files).
+;
+; Inno Setup flags:
+;   /VERYSILENT          no UI at all
+;   /SUPPRESSMSGBOXES    skip any pop-ups
+;   /NORESTART           don't reboot
+;   /CLOSEAPPLICATIONS   stop the running app so files can be replaced
+;   /RESTARTAPPLICATIONS relaunch the app after install
 UpdaterApply(assetUrl) {
     global UPDATER_APP_NAME, UPDATER_USER_AGENT
     if (assetUrl = "")
         return false
-    tempExe := A_Temp "\" UPDATER_APP_NAME "-update.exe"
-    tempBat := A_Temp "\" UPDATER_APP_NAME "-update.bat"
+    tempInstaller := A_Temp "\" UPDATER_APP_NAME "Setup-update.exe"
     try {
         http := ComObject("WinHttp.WinHttpRequest.5.1")
         http.Open("GET", assetUrl, false)
@@ -68,26 +74,14 @@ UpdaterApply(assetUrl) {
         stream.Type := 1
         stream.Open()
         stream.Write(http.ResponseBody)
-        if FileExist(tempExe)
-            FileDelete(tempExe)
-        stream.SaveToFile(tempExe, 2)
+        if FileExist(tempInstaller)
+            FileDelete(tempInstaller)
+        stream.SaveToFile(tempInstaller, 2)
         stream.Close()
     } catch {
         return false
     }
-    targetExe := GetExecutablePath()
-    bat := "@echo off`r`n"
-        . "ping -n 3 127.0.0.1 > nul`r`n"
-        . ":retry`r`n"
-        . 'copy /Y "' tempExe '" "' targetExe '" > nul`r`n'
-        . "if errorlevel 1 (ping -n 2 127.0.0.1 > nul & goto retry)`r`n"
-        . 'start "" "' targetExe '"`r`n'
-        . 'del "' tempExe '"`r`n'
-        . '(goto) 2>nul & del "%~f0"`r`n'
-    if FileExist(tempBat)
-        FileDelete(tempBat)
-    FileAppend(bat, tempBat)
-    Run('"' A_ComSpec '" /c "' tempBat '"', , "Hide")
+    Run('"' tempInstaller '" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS')
     return true
 }
 
