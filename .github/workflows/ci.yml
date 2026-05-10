@@ -29,14 +29,20 @@ jobs:
       - name: Compile
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $base = "$PWD\ahk\AutoHotkey64.exe"
           $compiler = "$PWD\ahk\Compiler\Ahk2Exe.exe"
+          Write-Host "Compiler: $compiler"
+          Write-Host "Base:     $base"
           $iconArg = @()
           if (Test-Path "assets\icon.ico") { $iconArg = @("/icon", "assets\icon.ico") }
-          & $compiler /in src\main.ahk /out dist\WindowsTvGameMode.exe /base $base @iconArg
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path "dist\WindowsTvGameMode.exe")) { Write-Error "Build did not produce .exe"; exit 1 }
+          $proc = Start-Process -FilePath $compiler -ArgumentList (@("/in","src\main.ahk","/out","dist\WindowsTvGameMode.exe","/base",$base) + $iconArg) -Wait -PassThru -NoNewWindow
+          Write-Host "Ahk2Exe exit code: $($proc.ExitCode)"
+          if ($proc.ExitCode -ne 0) { throw "Ahk2Exe exited with code $($proc.ExitCode)" }
+          Write-Host "dist/ contents:"
+          Get-ChildItem dist | Format-Table Name,Length
+          if (-not (Test-Path "dist\WindowsTvGameMode.exe")) { throw "Build did not produce dist\WindowsTvGameMode.exe" }
 
       - name: Build installer
         shell: pwsh
