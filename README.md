@@ -2,124 +2,148 @@
 
 Press the **Xbox Guide button** on your controller to flip your PC between **desktop mode** and **couch/TV mode**. Press it again to flip back.
 
-In TV mode, the script:
+In TV mode the app:
 
-1. Switches the display to your TV only (e.g. monitor 3)
-2. Sets default audio to your TV
-3. Launches Playnite Fullscreen
+1. Switches the display layout to your TV (via Monitor Profile Switcher).
+2. Sets default audio to your TV (via SoundVolumeView).
+3. Minimizes all desktop windows.
+4. Launches Playnite Fullscreen (optional).
 
-In desktop mode, it reverses all three.
+In desktop mode it reverses all four.
 
-> **HDR note:** system-wide HDR is intentionally not toggled by this script. When the TV is the *only* active display on many sets (Hisense included), Windows refuses to expose HDR. If you want HDR, rely on per-game HDR / Windows AutoHDR instead — those work independently of the display output topology.
+> **HDR note:** system-wide HDR is intentionally not toggled. When the TV is the *only* active display on many sets, Windows refuses to expose HDR. Rely on per-game HDR / Windows AutoHDR instead.
 
-Everything is driven by `config.ini`, so others can adapt it to their own hardware without touching the script.
+Distributed as a single self-contained `.exe` — no AutoHotkey install required.
 
 ---
 
-## Requirements
+## Install
 
-| Component | Why | Where |
+1. Grab the latest `WindowsTvGameMode.exe` from the [Releases page](https://github.com/gemivnet/WindowsTvGameMode/releases).
+2. Drop it anywhere (e.g. `%LOCALAPPDATA%\WindowsTvGameMode\`) and double-click.
+3. SmartScreen will warn on first launch (unsigned) — click **More info → Run anyway**.
+4. On first run the app offers to open Settings so you can point at the external tools.
+
+A tray icon appears. Right-click it for Settings, autostart toggle, update check, and exit.
+
+## External tools (you supply)
+
+Licensing prevents bundling these — install them yourself once:
+
+| Tool | Why | Where |
 |---|---|---|
-| **AutoHotkey v2** | runs the script | <https://www.autohotkey.com/> |
-| **Monitor Profile Switcher** (Martin Krämer) | save + restore full display layouts via the Windows CCD API | <https://sourceforge.net/projects/monitorswitcher/> |
-| **SoundVolumeView** (NirSoft) | switch default audio device by name | <https://www.nirsoft.net/utils/sound_volume_view.html> |
-| **Playnite** (optional) | fullscreen launcher | <https://playnite.link/> |
-| **Xbox controller** (XInput) | the Guide button trigger | — |
+| **Monitor Profile Switcher** (Martin Krämer) | Save + restore full display layouts via the Windows CCD API. | <https://sourceforge.net/projects/monitorswitcher/> |
+| **SoundVolumeView** (NirSoft) | Switch default audio device by name. | <https://www.nirsoft.net/utils/sound_volume_view.html> |
+| **Playnite** (optional) | Fullscreen launcher. | <https://playnite.link/> |
 
-> **Why these tools?** Windows has no clean CLI for "switch to exactly this monitor layout" or "make this audio device default". MonitorSwitcher uses the proper CCD (`SetDisplayConfig`) API to atomically load a saved layout — much more reliable than per-monitor enable/disable via MultiMonitorTool, which silently fails on many systems when disabling the current primary. SoundVolumeView is the smallest reliable CLI for audio default switching.
+Drop the `.exe`s somewhere stable (e.g. `C:\Tools\…`) and point the Settings window at them.
 
----
+> **Why these tools?** Windows has no clean CLI for "switch to exactly this monitor layout" or "make this audio device default". MonitorSwitcher wraps `SetDisplayConfig` (atomic CCD layout swap — the same API the Display Settings page uses), and SoundVolumeView is the smallest reliable CLI for default-audio switching.
 
 ## Setup
 
-### 1. Install the tools
+### 1. Save display profiles
 
-Install AutoHotkey v2. Drop `MonitorSwitcher.exe` and `SoundVolumeView.exe` somewhere stable, e.g. `C:\Tools\MonitorSwitcher\` and `C:\Tools\SoundVolumeView\`.
+Launch `MonitorSwitcher.exe`. It sits in the tray.
 
-### 2. Save your display profiles
+1. In Windows Display Settings, arrange things for **desktop mode** (desktop monitors on, TV off). Set the TV's native resolution and refresh rate first, while it's still enabled — Windows remembers these per-display.
+2. Right-click the MonitorSwitcher tray icon → **Save profile as…** → `desktop`.
+3. Arrange for **TV mode** (TV on, other monitors off).
+4. Right-click → **Save profile as…** → `tv`.
 
-Launch `MonitorSwitcher.exe` — it sits in the tray.
+Profiles are stored as XML under `%APPDATA%\MonitorSwitcher\Profiles\`.
 
-1. In Windows Display Settings, arrange things exactly how you want **desktop mode** (e.g. both desktop monitors on, TV off). Also set your TV's native resolution and refresh rate in Windows now, before disabling it — Windows remembers these per-display.
-2. Right-click the MonitorSwitcher tray icon → **Save profile as…** → name it `desktop`.
-3. Now arrange things for **TV mode** (TV on, other monitors off).
-4. Right-click the tray icon → **Save profile as…** → name it `tv`.
-
-Profiles are stored as XML under `%APPDATA%\MonitorSwitcher\Profiles\`. You can verify by running:
-
-```
-dir "$env:AppData\MonitorSwitcher\Profiles"
-```
-
-Test that both load correctly from the command line before wiring them into the script:
-
-```
-MonitorSwitcher.exe -load:"$env:AppData\MonitorSwitcher\Profiles\tv.xml"
-MonitorSwitcher.exe -load:"$env:AppData\MonitorSwitcher\Profiles\desktop.xml"
-```
-
-> The CLI wants a **full path** to the XML file, not just the profile name.
-
-### 3. Find your audio device names
-
-Run:
+### 2. Find your audio device names
 
 ```
 SoundVolumeView.exe /scomma devices.csv
 ```
 
-Open `devices.csv`, find the exact **Name** column value of your TV and your desktop speakers. Put them in `config.ini` under `[Audio]`. Matching is by substring, so `Hisense` usually works.
+Find the exact `Name` column value for your TV and desktop speakers. Substring matching, so `Hisense` usually works.
 
-### 4. Create your `config.ini`
+### 3. Configure via Settings
 
-Copy `config-example.ini` to `config.ini` in the same folder, then update every path in `[Tools]`, `[Display]`, and `[Playnite]`, plus device names in `[Audio]`. Everything is commented inline.
+Right-click the tray icon → **Settings…**. Fill in:
 
-> `config.ini` is gitignored so your personal paths never end up in the repo. Only `config-example.ini` is committed.
+- **Tools** — paths to `MonitorSwitcher.exe` and `SoundVolumeView.exe`
+- **Display** — full paths to your `tv.xml` and `desktop.xml` profiles, settle delay
+- **Audio** — device name substrings, role (default `all`)
+- **Playnite** — launch toggle, path to `Playnite.FullscreenApp.exe`, close-on-exit
+- **General** — poll interval, hold duration, notifications toggle
 
-### 5. Run it
+Settings save to `%APPDATA%\WindowsTvGameMode\config.ini`. A legacy `config.ini` next to the .exe is migrated on first run.
 
-Double-click `WindowsTvGameMode.ahk`. It goes to the tray. Press the Xbox Guide button on your controller — you should see a tray tip and your TV/HDR/audio/Playnite flip over.
+### 4. Press the Guide button
 
-To run it at login, put a shortcut to the `.ahk` file in `shell:startup`.
+Tray tip should fire and your display/audio/Playnite flip. Press again to flip back.
+
+To launch at login, tray menu → **Start with Windows**.
 
 ---
 
 ## How it works
 
-- **Guide button detection** — the Xbox Guide button is not a normal joystick button. Windows intercepts it for Game Bar, and AHK's `GetKeyState "JoyN"` doesn't see it. This script calls `XInputGetStateEx` (undocumented ordinal `100` in `xinput1_4.dll`), which exposes the Guide button as bit `0x0400`. The polling loop watches all 4 XInput slots and fires on button-up (after an optional hold duration).
-- **Display switching** — runs `MonitorSwitcher.exe -load:<profile.xml>` to load a pre-saved layout. MonitorSwitcher wraps the Windows CCD API (`QueryDisplayConfig` / `SetDisplayConfig`) and applies the full topology atomically — enabled displays, disabled displays, resolutions, primary, and arrangement all in one call. This is what Windows' own Display Settings page uses internally. An earlier version of this script composed the layout dynamically with MultiMonitorTool `/enable` / `/disable` / `/SetPrimary`, but MMT silently no-ops when asked to disable the current primary on many systems, and no amount of ordering worked around it reliably.
-- **Audio** — `SoundVolumeView.exe /SetDefault "<name>" all` sets both the console and multimedia default devices.
-- **Playnite** — launched via `Playnite.FullscreenApp.exe` (the fullscreen "big picture" build) and closed with `ProcessClose` on exit.
+- **Guide button detection** — calls `XInputGetStateEx` (undocumented ordinal `100` in `xinput1_4.dll`), which exposes the Guide button as bit `0x0400`. Polls all 4 XInput slots and fires on button-up after the configured hold duration.
+- **Display switching** — runs `MonitorSwitcher.exe -load:<profile.xml>`, which calls `SetDisplayConfig` to apply the saved CCD topology atomically.
+- **Audio** — `SoundVolumeView.exe /SetDefault "<name>" all` sets both Console and Multimedia default devices.
+- **Playnite** — `Playnite.FullscreenApp.exe` is launched on entry and closed with `ProcessClose` on exit.
 
----
+## Tray menu
 
-## Config reference
+- **Toggle TV mode** — same effect as pressing the Guide button
+- **Reload config** — re-reads `config.ini` (useful after manual edits)
+- **Settings…** — opens the config editor
+- **Start with Windows** — toggleable; writes to `HKCU\…\Run`
+- **Check for updates** — manual check (auto-runs 5 s after startup too)
+- **About** / **Exit**
 
-See `config.ini` for the full template. Keys worth highlighting:
+Logs go to `%APPDATA%\WindowsTvGameMode\tv-mode.log`.
 
-- `General.HoldDurationMs` — set to e.g. `400` if you want to require a short hold to toggle (prevents accidental double-toggles if a game doesn't swallow the Guide button).
-- `General.PollInterval` — 75 ms is a good default. Lower if the button feels laggy.
-- `Display.SettleDelayMs` — how long to wait after switching displays before switching audio. Bump this if your TV is slow to sync.
-- `Playnite.CloseOnExit` — set `false` if you'd rather leave Playnite running in the background.
+## Auto-update
 
----
+On launch and via the tray, the app polls GitHub Releases. If a newer build is published it prompts with release notes; **Yes** downloads the new `.exe` and a small batch script swaps it in and relaunches.
 
 ## Troubleshooting
 
-**The Guide button does nothing.** Make sure the controller is connected via XInput (USB, Xbox Wireless, or the "Xbox Wireless Adapter"). DirectInput-only controllers won't work. If you use Steam, disable "Steam Input" for the Xbox controller or Steam will capture the Guide button before us.
+**Guide button does nothing.** Controller must be on XInput (USB, Xbox Wireless, or the Xbox Wireless Adapter). If you use Steam, disable Steam Input for the controller or Steam will capture the Guide button first.
 
-**Audio switches to the wrong device.** `SoundVolumeView` matches by substring against the device name. Use a more specific name, e.g. `Hisense 65U7N` instead of `Hisense`, if you have multiple Hisense outputs (HDMI + ARC).
+**Audio switches to the wrong device.** Use a more specific substring (e.g. `Hisense 65U7N`, not just `Hisense`).
 
-**Playnite doesn't launch.** Verify `Playnite.Path` points at `Playnite.FullscreenApp.exe` (not `Playnite.DesktopApp.exe`). `%LOCALAPPDATA%` expansion is supported.
+**Playnite doesn't launch.** Point at `Playnite.FullscreenApp.exe`, not `Playnite.DesktopApp.exe`. `%LOCALAPPDATA%` expansion is supported.
 
-**Both modes fire on a single press.** Increase `General.PollInterval` slightly, or set `General.HoldDurationMs` to `300+`.
+**Both modes fire on one press.** Increase **Hold duration** in Settings (try 300–500 ms).
 
----
+## Building from source
 
-## Files
+Requires Windows + [AutoHotkey v2](https://www.autohotkey.com/) (which ships with Ahk2Exe under `Compiler\`):
 
-- `WindowsTvGameMode.ahk` — main script
-- `config-example.ini` — template config (committed)
-- `config.ini` — your local config (gitignored)
-- `.gitignore`
-- `README.md` — this file
+```powershell
+& "C:\Program Files\AutoHotkey\Compiler\Ahk2Exe.exe" `
+    /in src\main.ahk /out dist\WindowsTvGameMode.exe `
+    /base "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
+```
+
+CI builds an artifact on every push; tag `vX.Y.Z` to trigger a release build.
+
+## Layout
+
+```
+src/
+  main.ahk                  # entry point
+  lib/
+    version.ahk             # APP_VERSION (replaced in CI)
+    config.ahk              # %APPDATA% ini read/write
+    autostart.ahk           # HKCU Run toggle
+    updater.ahk             # GitHub Releases polling + swap
+    updater_ui.ahk          # update prompt
+    tray.ahk                # tray menu builder
+    tv_config.ahk           # WindowsTvGameMode config schema + migration
+    tv_log.ahk              # logging
+    tv_xinput.ahk           # XInput polling for the Guide button
+    tv_actions.ahk          # mode toggle + display/audio/Playnite actions
+    tv_settings_gui.ahk     # settings window + first-run wizard
+config-example.ini          # bundled reference config (also attached to releases)
+.github/workflows/
+  ci.yml                    # compile-check on push/PR
+  release.yml               # build + publish on v*.*.* tag
+```

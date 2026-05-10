@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version from tag
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^v',''
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Inject version into source
+        shell: pwsh
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          $file = "src\lib\version.ahk"
+          (Get-Content $file -Raw) -replace '0\.0\.0-dev', $v | Set-Content $file -NoNewline
+
+      - name: Download AutoHotkey v2 + Ahk2Exe
+        shell: pwsh
+        run: |
+          $ahkVersion = "2.0.18"
+          $url = "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$ahkVersion/AutoHotkey_$ahkVersion.zip"
+          Invoke-WebRequest -Uri $url -OutFile ahk.zip
+          Expand-Archive -Path ahk.zip -DestinationPath ahk -Force
+
+      - name: Compile
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $base = "$PWD\ahk\AutoHotkey64.exe"
+          $compiler = "$PWD\ahk\Compiler\Ahk2Exe.exe"
+          $iconArg = @()
+          if (Test-Path "assets\icon.ico") { $iconArg = @("/icon", "assets\icon.ico") }
+          & $compiler /in src\main.ahk /out dist\WindowsTvGameMode.exe /base $base @iconArg
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/WindowsTvGameMode.exe
+            config-example.ini
+          generate_release_notes: true
+          make_latest: 'true'

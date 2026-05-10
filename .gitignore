@@ -2,3 +2,9 @@
 # Use config-example.ini as the committed template.
 config.ini
 tv-mode.log
+
+# Build output
+dist/
+ahk/
+ahk.zip
+assets/icon.ico
