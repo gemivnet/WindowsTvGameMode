@@ -28,6 +28,7 @@ jobs:
 
       - name: Compile
         shell: pwsh
+        timeout-minutes: 5
         run: |
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
@@ -37,10 +38,14 @@ jobs:
           Write-Host "Base:     $base"
           $iconArg = @()
           if (Test-Path "assets\icon.ico") { $iconArg = @("/icon", "assets\icon.ico") }
-          $proc = Start-Process -FilePath $compiler -ArgumentList (@("/in","src\main.ahk","/out","dist\WindowsTvGameMode.exe","/base",$base) + $iconArg) -Wait -PassThru -NoNewWindow
+          $argList = @("/in","src\main.ahk","/out","dist\WindowsTvGameMode.exe","/base",$base) + $iconArg
+          Write-Host "Args: $($argList -join ' ')"
+          $proc = Start-Process -FilePath $compiler -ArgumentList $argList -Wait -PassThru -WindowStyle Hidden -RedirectStandardInput "NUL" -RedirectStandardOutput "ahk2exe.stdout.log" -RedirectStandardError "ahk2exe.stderr.log"
           Write-Host "Ahk2Exe exit code: $($proc.ExitCode)"
+          if (Test-Path "ahk2exe.stdout.log") { Write-Host "--- stdout ---"; Get-Content "ahk2exe.stdout.log" }
+          if (Test-Path "ahk2exe.stderr.log") { Write-Host "--- stderr ---"; Get-Content "ahk2exe.stderr.log" }
           if ($proc.ExitCode -ne 0) { throw "Ahk2Exe exited with code $($proc.ExitCode)" }
-          Write-Host "dist/ contents:"
+          Write-Host "--- dist contents ---"
           Get-ChildItem dist | Format-Table Name,Length
           if (-not (Test-Path "dist\WindowsTvGameMode.exe")) { throw "Build did not produce dist\WindowsTvGameMode.exe" }
 
