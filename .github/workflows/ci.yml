@@ -40,7 +40,7 @@ jobs:
           if (Test-Path "assets\icon.ico") { $iconArg = @("/icon", "assets\icon.ico") }
           $argList = @("/in","src\main.ahk","/out","dist\WindowsTvGameMode.exe","/base",$base) + $iconArg
           Write-Host "Args: $($argList -join ' ')"
-          $proc = Start-Process -FilePath $compiler -ArgumentList $argList -Wait -PassThru -WindowStyle Hidden -RedirectStandardInput "NUL" -RedirectStandardOutput "ahk2exe.stdout.log" -RedirectStandardError "ahk2exe.stderr.log"
+          $proc = Start-Process -FilePath $compiler -ArgumentList $argList -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput "ahk2exe.stdout.log" -RedirectStandardError "ahk2exe.stderr.log"
           Write-Host "Ahk2Exe exit code: $($proc.ExitCode)"
           if (Test-Path "ahk2exe.stdout.log") { Write-Host "--- stdout ---"; Get-Content "ahk2exe.stdout.log" }
           if (Test-Path "ahk2exe.stderr.log") { Write-Host "--- stderr ---"; Get-Content "ahk2exe.stderr.log" }
