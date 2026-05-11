@@ -8,7 +8,8 @@
 
 #define AppName       "WindowsTvGameMode"
 #define AppPublisher  "gemivnet"
-#define AppExeName    "WindowsTvGameMode.exe"
+#define AppExeName    "AutoHotkey64.exe"
+#define AppScript     "src\main.ahk"
 #define AppURL        "https://github.com/gemivnet/WindowsTvGameMode"
 
 [Setup]
@@ -33,6 +34,7 @@ WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayName={#AppName}
 UninstallDisplayIcon={app}\{#AppExeName}
+AppMutex=Global\WindowsTvGameMode-9AD86FFB
 #if FileExists(AddBackslash(SourcePath) + "..\assets\icon.ico")
 SetupIconFile=..\assets\icon.ico
 #endif
@@ -47,23 +49,21 @@ Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription
 Name: "startupicon"; Description: "Start {#AppName} when Windows starts"; GroupDescription: "Autostart:"
 
 [Files]
-Source: "..\dist\WindowsTvGameMode.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\ahk\AutoHotkey64.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\src\*"; DestDir: "{app}\src"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\config-example.ini"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Parameters: """{app}\{#AppScript}"""; WorkingDir: "{app}"; IconFilename: "{app}\{#AppExeName}"
 Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
-Name: "{userdesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+Name: "{userdesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Parameters: """{app}\{#AppScript}"""; WorkingDir: "{app}"; IconFilename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
 [Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#AppName}"; ValueData: """{app}\{#AppExeName}"""; Flags: uninsdeletevalue; Tasks: startupicon
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#AppName}"; ValueData: """{app}\{#AppExeName}"" ""{app}\{#AppScript}"""; Flags: uninsdeletevalue; Tasks: startupicon
 
 [Run]
-Filename: "{app}\{#AppExeName}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent
-
-[UninstallRun]
-Filename: "{cmd}"; Parameters: "/C taskkill /F /IM {#AppExeName}"; Flags: runhidden; RunOnceId: "KillApp"
+Filename: "{app}\{#AppExeName}"; Parameters: """{app}\{#AppScript}"""; WorkingDir: "{app}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent
 
 ; -----------------------------------------------------------------------------
 ; Custom wizard pages

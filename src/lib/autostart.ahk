@@ -23,7 +23,12 @@ AutostartIsEnabled() {
 
 AutostartEnable() {
     global AUTOSTART_APP_NAME, AUTOSTART_REG
-    target := '"' GetExecutablePath() '"'
+    if A_IsCompiled {
+        target := '"' A_ScriptFullPath '"'
+    } else {
+        ; Bundled-runtime form — re-launch AHK with our script path.
+        target := '"' A_AhkPath '" "' A_ScriptFullPath '"'
+    }
     RegWrite(target, "REG_SZ", AUTOSTART_REG, AUTOSTART_APP_NAME)
 }
 
@@ -40,8 +45,9 @@ AutostartToggle() {
     return AutostartIsEnabled()
 }
 
-; A_ScriptFullPath points at the .ahk in dev; when compiled, Ahk2Exe sets it
-; to the running .exe. Either way it is what we want to relaunch.
+; Returns the path of the file that gets replaced by the installer when an
+; update is applied. For bundled-runtime apps that's the AHK interpreter; for
+; compiled .exe apps that's the .exe itself. The updater uses this for swap.
 GetExecutablePath() {
     return A_IsCompiled ? A_ScriptFullPath : A_AhkPath
 }

@@ -22,6 +22,11 @@ SetWorkingDir A_ScriptDir
 
 global APP_NAME := "WindowsTvGameMode"
 
+; Named mutex so the Inno Setup installer can detect a running instance via
+; its AppMutex= directive and close it before replacing files. GUID matches
+; the AppMutex in installer/WindowsTvGameMode.iss.
+DllCall("CreateMutexW", "Ptr", 0, "Int", 0, "WStr", "Global\WindowsTvGameMode-9AD86FFB")
+
 AppConfigInit(APP_NAME)
 LogInit()
 AutostartInit(APP_NAME)

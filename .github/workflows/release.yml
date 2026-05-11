@@ -30,26 +30,13 @@ jobs:
           $file = "src\lib\version.ahk"
           (Get-Content $file -Raw) -replace '0\.0\.0-dev', $v | Set-Content $file -NoNewline
 
-      - name: Download AutoHotkey v2 + Ahk2Exe
+      - name: Download AutoHotkey v2 runtime
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           $ahkVersion = "2.0.18"
           Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$ahkVersion/AutoHotkey_$ahkVersion.zip" -OutFile ahk.zip
           Expand-Archive -Path ahk.zip -DestinationPath ahk -Force
-          $ahk2exeAsset = (Invoke-RestMethod "https://api.github.com/repos/AutoHotkey/Ahk2Exe/releases/latest").assets[0].browser_download_url
-          Invoke-WebRequest -Uri $ahk2exeAsset -OutFile ahk2exe.zip
-          Expand-Archive -Path ahk2exe.zip -DestinationPath ahk\Compiler -Force
-
-      - name: Compile
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
-          $base = "$PWD\ahk\AutoHotkey64.exe"
-          $compiler = "$PWD\ahk\Compiler\Ahk2Exe.exe"
-          $iconArg = @()
-          if (Test-Path "assets\icon.ico") { $iconArg = @("/icon", "assets\icon.ico") }
-          & $compiler /in src\main.ahk /out dist\WindowsTvGameMode.exe /base $base @iconArg
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build installer
         shell: pwsh
