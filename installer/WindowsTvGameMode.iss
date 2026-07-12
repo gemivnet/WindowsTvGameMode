@@ -154,7 +154,7 @@ begin
     'Default audio device names for each mode',
     'Match by substring against the Name column shown in Windows Sound settings or in ' +
     'SoundVolumeView. Use a longer substring if you have multiple devices with similar names ' +
-    '(e.g. "Hisense 65U7N" rather than "Hisense").');
+    '(e.g. your full TV model name rather than just "Hisense").');
   AudioPage.Add('TV audio device (substring):',      False);
   AudioPage.Add('Desktop audio device (substring):', False);
   AudioPage.Values[0] := tvDevice;

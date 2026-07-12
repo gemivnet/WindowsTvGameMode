@@ -114,7 +114,7 @@ On launch and via the tray, the app polls GitHub Releases. If a newer build is p
 
 **Guide button does nothing.** Controller must be on XInput (USB, Xbox Wireless, or the Xbox Wireless Adapter). If you use Steam, disable Steam Input for the controller or Steam will capture the Guide button first.
 
-**Audio switches to the wrong device.** Use a more specific substring (e.g. `Hisense 65U7N`, not just `Hisense`).
+**Audio switches to the wrong device.** Use a more specific substring (e.g. your full TV model name, not just `Hisense`).
 
 **Playnite doesn't launch.** Point at `Playnite.FullscreenApp.exe`, not `Playnite.DesktopApp.exe`. `%LOCALAPPDATA%` expansion is supported.
 
@@ -122,15 +122,25 @@ On launch and via the tray, the app polls GitHub Releases. If a newer build is p
 
 ## Building from source
 
-Requires Windows + [AutoHotkey v2](https://www.autohotkey.com/) (which ships with Ahk2Exe under `Compiler\`):
+The app is no longer compiled to a standalone `.exe`. Instead the installer bundles the
+AutoHotkey v2 runtime (`AutoHotkey64.exe`) alongside the `src/` scripts, and
+[Inno Setup](https://jrsoftware.org/isinfo.php) packages it into `WindowsTvGameModeSetup.exe`.
+
+To build the installer locally on Windows:
 
 ```powershell
-& "C:\Program Files\AutoHotkey\Compiler\Ahk2Exe.exe" `
-    /in src\main.ahk /out dist\WindowsTvGameMode.exe `
-    /base "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
+# 1. Fetch the AutoHotkey v2 runtime into ahk\
+Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v2.0.18/AutoHotkey_2.0.18.zip" -OutFile ahk.zip
+Expand-Archive -Path ahk.zip -DestinationPath ahk -Force
+
+# 2. Compile the installer (ISCC ships with Inno Setup 6)
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+    /DAppVersion=(Get-Content VERSION -Raw).Trim() `
+    /Odist installer\WindowsTvGameMode.iss
+# -> dist\WindowsTvGameModeSetup.exe
 ```
 
-CI builds an artifact on every push; tag `vX.Y.Z` to trigger a release build.
+CI builds an installer artifact on every push; tag `vX.Y.Z` to trigger a release build.
 
 ## Layout
 
