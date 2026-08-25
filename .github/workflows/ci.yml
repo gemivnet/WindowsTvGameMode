@@ -11,30 +11,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download AutoHotkey v2 runtime
+      - name: Read version
+        id: ver
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          $ahkVersion = "2.0.18"
-          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$ahkVersion/AutoHotkey_$ahkVersion.zip" -OutFile ahk.zip
-          Expand-Archive -Path ahk.zip -DestinationPath ahk -Force
-          if (-not (Test-Path "ahk\AutoHotkey64.exe")) { throw "AutoHotkey64.exe missing" }
-          Get-ChildItem ahk\AutoHotkey64.exe | Format-Table Name,Length
+          $v = (Get-Content VERSION -Raw).Trim()
+          "version=$v" >> $env:GITHUB_OUTPUT
 
-      - name: Build installer
-        shell: pwsh
-        run: |
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) {
-            Write-Host "Inno Setup not preinstalled, fetching..."
-            choco install innosetup -y --no-progress
-          }
-          $version = (Get-Content VERSION -Raw).Trim()
-          & $iscc /DAppVersion=$version /Odist installer\WindowsTvGameMode.iss
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path "dist\WindowsTvGameModeSetup.exe")) { Write-Error "Installer not produced"; exit 1 }
+      - uses: ./.github/actions/build-installer
+        with:
+          version: ${{ steps.ver.outputs.version }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: WindowsTvGameMode-preview
           path: dist\WindowsTvGameModeSetup.exe
+          if-no-files-found: error

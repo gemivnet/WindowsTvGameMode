@@ -1,0 +1,74 @@
+name: Build installer
+description: Fetch the AutoHotkey v2 runtime, validate the scripts, and compile the Inno Setup installer.
+
+inputs:
+  version:
+    description: Version embedded in the installer, without a leading "v".
+    required: true
+  ahk-version:
+    description: AutoHotkey v2 runtime version to bundle.
+    required: false
+    default: '2.0.18'
+
+outputs:
+  installer:
+    description: Path to the compiled installer.
+    value: ${{ steps.compile.outputs.installer }}
+
+runs:
+  using: composite
+  steps:
+    - name: Download AutoHotkey v2 runtime
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $v = "${{ inputs.ahk-version }}"
+        Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$v/AutoHotkey_$v.zip" -OutFile ahk.zip
+        Expand-Archive -Path ahk.zip -DestinationPath ahk -Force
+        if (-not (Test-Path "ahk\AutoHotkey64.exe")) { throw "AutoHotkey64.exe missing from AutoHotkey_$v.zip" }
+        Write-Host "Bundling AutoHotkey v$v runtime"
+
+    - name: Validate AutoHotkey scripts
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        # AutoHotkey64.exe is a GUI-subsystem binary: a syntax error normally opens a
+        # modal dialog that would hang the runner forever. /ErrorStdOut routes those to
+        # stderr instead, and /validate parses the script (and every #Include) without
+        # executing it. Start-Process (not "&") because PowerShell does not wait on
+        # GUI apps.
+        $log = Join-Path $env:RUNNER_TEMP "ahk-validate.txt"
+        $proc = Start-Process -FilePath "$PWD\ahk\AutoHotkey64.exe" `
+          -ArgumentList '/ErrorStdOut', '/validate', "$PWD\src\main.ahk" `
+          -PassThru -NoNewWindow -RedirectStandardError $log
+        if (-not $proc.WaitForExit(120000)) {
+          $proc.Kill()
+          Write-Error "AutoHotkey validation timed out after 120s (a dialog probably opened)"
+          exit 1
+        }
+        if (Test-Path $log) { Get-Content $log | Write-Host }
+        if ($proc.ExitCode -ne 0) {
+          Write-Error "src\main.ahk failed to parse (exit $($proc.ExitCode))"
+          exit 1
+        }
+        Write-Host "src\main.ahk and its includes parsed cleanly"
+
+    - name: Compile Inno Setup installer
+      id: compile
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+        if (-not (Test-Path $iscc)) {
+          Write-Host "Inno Setup not preinstalled, fetching..."
+          choco install innosetup -y --no-progress
+        }
+        if (-not (Test-Path $iscc)) { throw "ISCC.exe not found at $iscc after install" }
+        & $iscc /DAppVersion=${{ inputs.version }} /Odist installer\WindowsTvGameMode.iss
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $out = "dist\WindowsTvGameModeSetup.exe"
+        if (-not (Test-Path $out)) { throw "Installer not produced at $out" }
+        $size = (Get-Item $out).Length
+        if ($size -lt 500KB) { throw "Installer is only $size bytes - runtime probably not bundled" }
+        Write-Host "Built $out ($([math]::Round($size/1MB,2)) MB) as version ${{ inputs.version }}"
+        "installer=$out" >> $env:GITHUB_OUTPUT

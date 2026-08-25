@@ -23,9 +23,14 @@ SetWorkingDir A_ScriptDir
 global APP_NAME := "WindowsTvGameMode"
 
 ; Named mutex so the Inno Setup installer can detect a running instance via
-; its AppMutex= directive and close it before replacing files. GUID matches
+; its AppMutex= directive and close it before replacing files. Name matches
 ; the AppMutex in installer/WindowsTvGameMode.iss.
-DllCall("CreateMutexW", "Ptr", 0, "Int", 0, "WStr", "Global\WindowsTvGameMode-9AD86FFB")
+;
+; Deliberately session-local, not "Global\": creating a Global\ object needs
+; SeCreateGlobalPrivilege, which a standard user does not have, and the
+; installer runs with PrivilegesRequired=lowest. Inno opens the exact name it
+; is given, so a session-local name is what both sides must agree on.
+DllCall("CreateMutexW", "Ptr", 0, "Int", 0, "WStr", "WindowsTvGameMode-9AD86FFB")
 
 AppConfigInit(APP_NAME)
 LogInit()

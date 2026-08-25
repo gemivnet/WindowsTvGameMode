@@ -34,7 +34,7 @@ WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayName={#AppName}
 UninstallDisplayIcon={app}\{#AppExeName}
-AppMutex=Global\WindowsTvGameMode-9AD86FFB
+AppMutex=WindowsTvGameMode-9AD86FFB
 #if FileExists(AddBackslash(SourcePath) + "..\assets\icon.ico")
 SetupIconFile=..\assets\icon.ico
 #endif

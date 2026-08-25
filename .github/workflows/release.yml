@@ -1,8 +1,10 @@
 name: Release
 
+# Matches any v-prefixed tag, two-part (v1.2) or three-part (v1.2.0). The
+# version injected into the app is the tag minus the "v".
 on:
   push:
-    tags: ['v*.*.*']
+    tags: ['v*']
 
 permissions:
   contents: write
@@ -19,34 +21,27 @@ jobs:
         id: ver
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}"
-          $version = $tag -replace '^v',''
-          echo "version=$version" >> $env:GITHUB_OUTPUT
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          if ($version -notmatch '^\d+(\.\d+){1,2}$') {
+            Write-Error "Tag '${{ github.ref_name }}' is not vMAJOR.MINOR[.PATCH]"
+            exit 1
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Inject version into source
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           $v = "${{ steps.ver.outputs.version }}"
           $file = "src\lib\version.ahk"
-          (Get-Content $file -Raw) -replace '0\.0\.0-dev', $v | Set-Content $file -NoNewline
+          $body = Get-Content $file -Raw
+          if ($body -notmatch '0\.0\.0-dev') { throw "Version placeholder missing from $file" }
+          ($body -replace '0\.0\.0-dev', $v) | Set-Content $file -NoNewline
+          Write-Host "Injected version $v"
 
-      - name: Download AutoHotkey v2 runtime
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $ahkVersion = "2.0.18"
-          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$ahkVersion/AutoHotkey_$ahkVersion.zip" -OutFile ahk.zip
-          Expand-Archive -Path ahk.zip -DestinationPath ahk -Force
-
-      - name: Build installer
-        shell: pwsh
-        run: |
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) {
-            choco install innosetup -y --no-progress
-          }
-          & $iscc /DAppVersion=${{ steps.ver.outputs.version }} /Odist installer\WindowsTvGameMode.iss
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: ./.github/actions/build-installer
+        with:
+          version: ${{ steps.ver.outputs.version }}
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -54,3 +49,4 @@ jobs:
           files: dist/WindowsTvGameModeSetup.exe
           generate_release_notes: true
           make_latest: 'true'
+          fail_on_unmatched_files: true
